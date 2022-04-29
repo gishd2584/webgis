@@ -1,0 +1,106 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.14.1/css/ol.css" type="text/css">
+    <style>
+      .map {
+        height: 100px;
+        width: 100%;
+      }
+      .contener{
+       width: 40vw;
+       float: left;
+       margin-right: 5vw;
+       margin-bottom: 5vw;
+       height: 40vw;
+      }
+    </style>
+    <script src="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.14.1/build/ol.js"></script>
+    <title>OpenLayers example</title>
+  </head>
+  <body>
+    <!-- <h2>My Map</h2>
+    <div id="map" class="map"></div>
+    <script type="text/javascript">
+      var map = new ol.Map({
+        target: 'map',
+        layers: [
+          new ol.layer.Tile({
+            source: new ol.source.OSM()
+          })
+        ],
+        view: new ol.View({
+          center: ol.proj.fromLonLat([37.41, 8.82]),
+          zoom: 4
+        })
+      });
+    </script> -->
+    
+    <div class="contener">
+      <p>地图1</p>
+      <div id="map1"></div>
+    </div>
+    <div class="contener">
+      <p>地图2</p>
+      <div id="map2"></div>
+    </div>
+    <div style="clear: both;"></div>
+    <div class="contener">
+      <p>地图3</p>
+      <div id="map3" ></div>
+    </div>
+    <div class="contener">
+      <p>地图4</p>
+    <div id="map4"></div>
+    </div>
+
+    
+  
+    
+    
+    <script>
+        // 创建一个视图
+        var view = new ol.View({
+                center: [0, 0],
+                zoom: 2
+            });
+        var view1 = new ol.View({
+                center: [0, 0],
+                zoom: 2
+            });
+     
+        // 创建第一个地图
+    new ol.Map({
+            layers: [
+                new ol.layer.Tile({source: new ol.source.OSM()})
+            ],
+            view: view,
+            target: 'map1'
+    });
+    new ol.Map({
+            layers: [
+                new ol.layer.Tile({source: new ol.source.OSM()})
+            ],
+            view: view,
+            target: 'map2'
+    });
+     
+        // 创建第二个地图
+        new ol.Map({
+            layers: [
+                new ol.layer.Tile({source: new ol.source.OSM()})
+            ],
+            view: view1,
+            target: 'map3'
+    });
+    new ol.Map({
+            layers: [
+                new ol.layer.Tile({source: new ol.source.OSM()})
+            ],
+            view: view1,
+            target: 'map4'
+    });
+    </script>
+
+  </body>
+</html>

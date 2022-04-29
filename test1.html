@@ -1,0 +1,359 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>wfs demo</title>
+    <script src="./ol.js"></script>
+    <link rel="stylesheet" href="./ol.css">
+    <script src="./jq.js"></script>
+</head>
+
+<body style="padding: 30px;">
+    <div id="msg" style="padding: 20px;">被选中的要素：</div>
+    <div style="border: 1px solid black;border-radius: 16px;width: 15%;display: inline-block;text-align: center;line-height: 20px;margin: 10px;" onclick="point()">点选</div>
+    <div style="border: 1px solid black;border-radius: 16px;width: 15%;display: inline-block;text-align: center;line-height: 20px;margin: 10px;" onclick="selectbox()">框选</div>
+    <div>
+        <input id="buildingname" style="border: 1px solid black;border-radius: 16px;width: 35%;line-height: 20px;margin: 10px;display: inline-block;" onclick="selectbox()" placeholder="请输入建筑名称"></input>
+        <button id="submit" >属性查询</button>
+    </div>
+    
+    <div id="map" style="width:100%;height:100%;"></div>
+    <div class="result-container">
+        <table>
+            <tr>
+                <td>1</td>
+            </tr>
+        </table>
+
+    </div>
+   
+    <script>
+        var spaceVector 
+        function point(){
+            console.log('working1')
+            var interaction = new ol.interaction.Select({
+            condition: ol.events.condition.singleClick,
+            style: new ol.style.Style({
+                image: new ol.style.Circle({
+                    radius: 30,
+                    stroke: new ol.style.Stroke({
+                        width: 4,
+                        color: 'red'
+                    }),
+                    fill: new ol.style.Fill({
+                        color: 'green'
+                    })
+                }),
+                stroke: new ol.style.Stroke({
+                    width: 4,
+                    color: 'red'
+                }),
+                fill: new ol.style.Fill({
+                    color: 'green'
+                })
+            }),
+            layers: [
+                spaceVector
+            ]
+        });
+
+        // 监听select事件
+        interaction.on('select', function (e) {
+            if (e.selected.length > 0) {
+                console.log('working')
+                var feature = e.selected[0];
+                var name = feature.get('name');
+                document.getElementById('msg').innerText = '被选中的要素：' + name;
+            }else{
+                console.log(e.selected.length)
+            }
+            console.log('working')
+        });
+
+        // 添加单选工具
+        map.addInteraction(interaction);
+
+        }
+           
+           
+
+            
+
+
+            //加载数据底图
+            
+                var map = new ol.Map({
+                    layers: [new ol.layer.Tile({
+                        source: new ol.source.OSM()
+                    })],
+                    target: 'map',
+                    view: new ol.View({
+                        center: [117.13881, 34.21684],
+                        maxZoom: 19,
+                        zoom: 16,
+                        projection: 'EPSG:4326'
+                        })
+                });
+            
+           
+            //加载查询到的数据
+            var spaceSource = new ol.source.Vector();
+            var reflash=()=>{
+                var spaceVector = new ol.layer.Vector({
+                    source: spaceSource,
+                    style: new ol.style.Style({
+                        stroke: new ol.style.Stroke({
+                            color: "rgba(0, 0, 255, 1.0)",
+                            width: 2
+                        })
+                    })
+                });
+                map.addLayer(spaceVector);
+                Vector = spaceVector
+            }
+            //显示查询结果
+            function showResultList(list) {
+                console.log(list)
+				const { features } = list;
+				const propertyList = features.map(item => ({
+					id: item.properties.Id,
+					name: item.properties.Name,
+					area: item.properties.Shape_Area
+				}));
+				const tableDOM = document.querySelector(".result-container table");
+				tableDOM.innerHTML = `
+                    <tr class="head">
+					  <th>id</th>
+					  <th>名称</th>
+					  <th>面积</th>
+				    </tr>
+        `;
+				document.querySelector(".result-container").style.display = "block";
+				propertyList.forEach(item => {
+					const trDOM = document.createElement("tr");
+					trDOM.innerHTML = `
+            <tr>
+					    <td>${item.id}</td>
+					    <td>${item.name}</td>
+					    <td>${item.area}</td>
+				  </tr>
+          `;
+					tableDOM.appendChild(trDOM);
+				});
+			}
+            //获取WFS
+            var loadbuilding=()=>{
+				var featureRequest = new ol.format.WFS().writeGetFeature({
+					srsName: "EPSG:4326", // 坐标系
+					featureNS: "http://geoserve.org/school", // 命名空间
+					featurePrefix: "school", // 工作区
+					featureTypes: ["building"], // 图层名
+					outputFormat: "application/json",
+					//filter: ol.format.filter.intersects("the_geom", feature.getGeometry(), "EPSG:3857")
+				});
+
+				fetch("http://localhost:7777/geoserver/wfs", {
+					method: "POST",
+					body: new XMLSerializer().serializeToString(featureRequest)
+				})
+					.then(function (response) {
+						return response.json();
+					})
+					.then(function (json) {
+						showResultList(json);
+						var features = new ol.format.GeoJSON().readFeatures(json);
+						if (features.length == 0) {
+							alert("没有数据");
+						} else {
+							spaceSource.clear();
+							spaceSource.addFeatures(features);
+							// map.getView().fit(spaceSource.getExtent()); // 视图缩放至查询结果
+                            var spaceVector = new ol.layer.Vector({
+                                source: spaceSource,
+                                style: new ol.style.Style({
+                                    stroke: new ol.style.Stroke({
+                                        color: "rgba(0, 0, 255, 1.0)",
+                                        width: 2
+                                    })
+                                })
+                            });
+                            map.addLayer(spaceVector);
+                            spaceVector = spaceVector
+						}
+					});
+			}
+            
+            loadbuilding();
+            reflash();
+            var selectedStyle = new ol.style.Style({
+            image: new ol.style.Circle({
+                radius: 30,
+                stroke: new ol.style.Stroke({
+                    width: 4,
+                    color: 'red'
+                }),
+                fill: new ol.style.Fill({
+                    color: 'green'
+                })
+            }),
+            stroke: new ol.style.Stroke({
+                width: 4,
+                color: 'red'
+            }),
+            fill: new ol.style.Fill({
+                color: 'green'
+            })
+        });
+
+        // 未选中样式
+        var unselectedStyle = new ol.style.Style({
+            image: new ol.style.Circle({
+                radius: 30,
+                stroke: new ol.style.Stroke({
+                    width: 4,
+                    color: 'blue'
+                }),
+                fill: new ol.style.Fill({
+                    color: 'yellow'
+                })
+            }),
+            stroke: new ol.style.Stroke({
+                width: 4,
+                color: 'blue'
+            }),
+            fill: new ol.style.Fill({
+                color: 'yellow'
+            })
+        });
+
+            map.on('singleclick', function (e) {
+            var pixel = map.getEventPixel(e.originalEvent);
+            var currentFeature = map.forEachFeatureAtPixel(pixel, function (feature, layer) {
+                return feature;
+            });
+            if (currentFeature) {
+                var features = spaceSource.getFeatures();
+                features.forEach(function (item) {
+                    item.setStyle(unselectedStyle);
+                });
+                currentFeature.setStyle(selectedStyle);
+                console.log(currentFeature)
+                var id = currentFeature.values_.Name;
+                document.getElementById('msg').innerText = '被选中的要素：' + id;
+            } else {
+                var features = spaceSource.getFeatures();
+                features.forEach(function (item) {
+                    item.setStyle(unselectedStyle);
+                });
+            }
+        });
+
+        //框选
+        var selectbox = ()=>{
+            var select = new ol.interaction.Select({
+            condition: ol.events.condition.never,
+            style: new ol.style.Style({
+                image: new ol.style.Circle({
+                    radius: 30,
+                    stroke: new ol.style.Stroke({
+                        width: 4,
+                        color: 'red'
+                    }),
+                    fill: new ol.style.Fill({
+                        color: 'green'
+                    })
+                }),
+                stroke: new ol.style.Stroke({
+                    width: 4,
+                    color: 'red'
+                }),
+                fill: new ol.style.Fill({
+                    color: 'green'
+                })
+            })
+        });
+
+        // 创建绘制工具
+        var dragBox = new ol.interaction.DragBox({
+            condition: ol.events.condition.always
+        });
+
+        // 开始绘制，清除已有要素
+        dragBox.on('boxstart', function () {
+            select.getFeatures().clear();
+        });
+
+        // 结束绘制
+        dragBox.on('boxend', function () {
+            // 获取被选择的要素
+            var extent = dragBox.getGeometry().getExtent();
+            spaceSource.forEachFeatureIntersectingExtent(extent, function (feature) {
+                select.getFeatures().push(feature);
+            });
+
+            // 遍历被选中的要素
+            var selected = [];
+            var selectedFeatures = select.getFeatures();
+            let features = spaceSource.getFeatures();
+                features.forEach(function (item) {
+                    item.setStyle(unselectedStyle);
+                });
+        for (var i = 0; i < selectedFeatures.getLength(); i++) {
+                var feature = selectedFeatures.item(i);
+                var name = feature.values_.Name;
+                selected.push(name);
+                feature.setStyle(selectedStyle);
+            }
+
+            // 输出查询结果
+            var msg = selected.join('、');
+            document.getElementById('msg').innerText = '被选中的要素：' + msg;
+        });
+
+        // 添加交互工具
+        map.addInteraction(dragBox);
+        map.addInteraction(select);
+
+        }
+
+        //属性查询
+        $("#submit").click(function(){
+                    buildingname = $("#buildingname").val()
+                    console.log(buildingname)
+                    propertyQuery(buildingname)
+                })
+        function propertyQuery(queryStr) {
+                var buildingname
+               
+				var featureRequest = new ol.format.WFS().writeGetFeature({
+					srsName: "EPSG:4326", // 坐标系
+					featureNS: "http://geoserve.org/school", // 命名空间
+					featurePrefix: "school", // 工作区
+					featureTypes: ["building"], // 图层名
+					outputFormat: "application/json",
+					filter: ol.format.filter.like("Name", `*${queryStr}*`)
+				});
+
+				fetch("http://localhost:7777/geoserver/wfs", {
+					method: "POST",
+					body: new XMLSerializer().serializeToString(featureRequest)
+				})
+					.then(function (response) {
+						return response.json();
+					})
+					.then(function (json) {
+						var features = new ol.format.GeoJSON().readFeatures(json);
+						spaceSource.clear();
+						spaceSource.addFeatures(features);
+					});
+			}
+
+
+    </script>
+
+</body>
+</html>
+
+
+
+
